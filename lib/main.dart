@@ -68,7 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
           // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            new Image.asset('assets/Image/safe.png'),
+            Image.asset('assets/Image/safe.png', height: 80, width: 80,),
             Text('Volume eau'),
 
           ],
