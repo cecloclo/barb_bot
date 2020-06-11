@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.red,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'BARBOT : le robot pompier'),
+      home: MyHomePage(title: 'BARBOT : le'),
     );
   }
 }
