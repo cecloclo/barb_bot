@@ -40,6 +40,80 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    return MaterialApp(
+      home: DefaultTabController(
+        length: 3,
+        child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.red,
+            bottom: TabBar(
+              tabs: [
+                Tab(icon: Icon(Icons.bluetooth)),
+                Tab(icon: Icon(Icons.home)),
+                Tab(icon: Icon(Icons.settings_remote)),
+              ],
+              unselectedLabelColor: Colors.black38,
+              indicatorColor: Colors.white,
+            ),
+            title: Text('Barbot : Le robot pompier'),
+          ),
+          body: TabBarView(
+            children: [
+              Center(
+                child: SizedBox(
+                    width: 150.0,
+                    height: 150.0,
+                    child: FloatingActionButton(
+                      onPressed: () {
+                        showAlertDialog(context);
+                      },
+                      child: Center(
+                        child: Text(
+                          "Connection Bluetooth",
+                        ),
+                      ),
+                    ),
+                ),
+              ),
+              Icon(Icons.directions_transit),
+              Icon(Icons.directions_bike),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+}
+  showAlertDialog(BuildContext context) {
+
+    // set up the button
+    Widget okButton = FlatButton(
+      child: Text("OK"),
+        onPressed: () => Navigator.pop(context, true),
+    );
+
+    // set up the AlertDialog
+    AlertDialog alert = AlertDialog(
+      title: Text("My title"),
+      content: Text("This is my message."),
+      actions: [
+        okButton,
+      ],
+    );
+
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+  }
+  showManualControlMode(BuildContext context) {
+
+  }
+/* Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
     Align(
@@ -54,7 +128,7 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
-
+        child : TabBar({)
         child: Column(
           // Column is also a layout widget. It takes a list of children and
           // arranges them vertically. By default, it sizes itself to fit its
@@ -102,30 +176,4 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
-
-  showAlertDialog(BuildContext context) {
-
-    // set up the button
-    Widget okButton = FlatButton(
-      child: Text("OK"),
-      onPressed: () { },
-    );
-
-    // set up the AlertDialog
-    AlertDialog alert = AlertDialog(
-      title: Text("My title"),
-      content: Text("This is my message."),
-      actions: [
-        okButton,
-      ],
-    );
-
-    // show the dialog
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return alert;
-      },
-    );
-  }
-}
+*/
