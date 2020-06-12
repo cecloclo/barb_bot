@@ -27,6 +27,7 @@ class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
 
   // The home page of your application.
+
   // This class is the configuration for the state. It holds the values (in this
   // case the title) provided by the parent (in this case the App widget) and
   // used by the build method of the State. Fields in a Widget subclass are
@@ -39,6 +40,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -62,163 +64,58 @@ class _MyHomePageState extends State<MyHomePage> {
             children: [
               Center(
                 child: SizedBox(
-                  width: 150.0,
-                  height: 150.0,
-                  child: FloatingActionButton(
-                    onPressed: () {
-                      showAlertDialog(context);
-                    },
-                    child: Center(
-                      child: Text(
-                        "Connection Bluetooth",
+                    width: 150.0,
+                    height: 150.0,
+                    child: FloatingActionButton(
+                      onPressed: () {
+                        showAlertDialog(context);
+                      },
+                      child: Center(
+                        child: Text(
+                          "Connection Bluetooth",
+                        ),
                       ),
                     ),
-                  ),
                 ),
               ),
               Icon(Icons.home),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: <Widget>[
-                  Container(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: <Widget>[
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          FloatingActionButton(
-                            onPressed: null,
-                            child: Center(child: Icon(Icons.arrow_back)),
-                          )
-                        ],
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Padding(
-                            padding: const EdgeInsets.all(10.0),
-                            child: FloatingActionButton(
-                              onPressed: null,
-                              child: Center(child: Icon(Icons.arrow_upward)),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(10.0),
-                            child: FloatingActionButton(
-                              onPressed: null,
-                              child: Center(child: Icon(Icons.arrow_downward)),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        children: <Widget>[
-                          FloatingActionButton(
-                            onPressed: null,
-                            child: Center(child: Icon(Icons.arrow_forward)),
-                          )
-                        ],
-                      ),
-                    ],
-                  )),
-                  Container(
-                      
-                      child: Row(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: <Widget>[
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              FloatingActionButton(
-                                onPressed: null,
-                                child: Center(child: Icon(Icons.arrow_back)),
-                              )
-                            ],
-                          ),
-                          Column(
-                            mainAxisSize: MainAxisSize.max,
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: <Widget>[
-                              Padding(
-                                padding: const EdgeInsets.all(20.0),
-                                child: FloatingActionButton(
-                                  onPressed: null,
-                                  child: Center(child: Icon(Icons.arrow_upward)),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(10.0),
-                                child: FloatingActionButton(
-                                  onPressed: null,
-                                  child: Center(child: Icon(Icons.arrow_downward)),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            children: <Widget>[
-                              FloatingActionButton(
-                                onPressed: null,
-                                child: Center(child: Icon(Icons.arrow_forward)),
-                              )
-                            ],
-                          ),
-                        ],
-                      )),
-                  Container(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: <Widget>[
-                        FloatingActionButton(
-                            onPressed: null,
-                            child: Center(child: Text("EAU")),
-                        ),
-                        FloatingActionButton(
-                            onPressed: null,
-                          child: Center(child: Icon(Icons.volume_up),),
-                        )
-                      ],
-                    ),
-                  )
-                ],
-              )
+              Icon(Icons.settings_remote),
             ],
           ),
         ),
       ),
     );
   }
+
 }
+  showAlertDialog(BuildContext context) {
 
-showAlertDialog(BuildContext context) {
-  // set up the button
-  Widget okButton = FlatButton(
-    child: Text("OK"),
-    onPressed: () => Navigator.pop(context, true),
-  );
+    // set up the button
+    Widget okButton = FlatButton(
+      child: Text("OK"),
+        onPressed: () => Navigator.pop(context, true),
+    );
 
-  // set up the AlertDialog
-  AlertDialog alert = AlertDialog(
-    title: Text("My title"),
-    content: Text("This is my message."),
-    actions: [
-      okButton,
-    ],
-  );
+    // set up the AlertDialog
+    AlertDialog alert = AlertDialog(
+      title: Text("My title"),
+      content: Text("This is my message."),
+      actions: [
+        okButton,
+      ],
+    );
 
-  // show the dialog
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return alert;
-    },
-  );
-}
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+  }
+  showManualControlMode(BuildContext context) {
 
-showManualControlMode(BuildContext context) {}
+  }
 /* Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
