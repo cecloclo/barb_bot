@@ -1,3 +1,6 @@
+// ignore: avoid_web_libraries_in_flutter
+//import 'dart:html';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -75,8 +78,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                 ),
               ),
-              Icon(Icons.directions_transit),
-              Icon(Icons.directions_bike),
+              Icon(Icons.home),
+              Icon(Icons.settings_remote),
             ],
           ),
         ),
