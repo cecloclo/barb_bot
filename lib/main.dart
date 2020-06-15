@@ -226,7 +226,19 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
               ),
-              Icon(Icons.home),
+              Center(
+                child: Card(
+                  color: Colors.red,
+                  child: Container(
+                    width: 150,
+                    height: 200,
+                    child: Text("Volume du réservoir",
+                        style: TextStyle(
+                          fontSize: 24.0,
+                        )),
+                  ),
+                ),
+              ),
               Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: <Widget>[
