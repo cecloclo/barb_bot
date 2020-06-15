@@ -1,8 +1,7 @@
-// ignore: avoid_web_libraries_in_flutter
-//import 'dart:html';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
 void main() {
   runApp(MyApp());
@@ -39,6 +38,157 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+
+  showAlertDialog(BuildContext context) {
+
+    // Initializing a global key, as it would help us in showing a SnackBar later
+    final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
+    // Get the instance of the bluetooth
+    FlutterBluetoothSerial bluetooth = FlutterBluetoothSerial.instance;
+
+    // Define some variables, which will be required later
+    List<BluetoothDevice> _devicesList = [];
+    BluetoothDevice _device;
+    bool _connected = false;
+    bool _pressed = false;
+
+    // We are using async callback for using await
+    Future<void> bluetoothConnectionState() async {
+      List<BluetoothDevice> devices = [];
+
+      // To get the list of paired devices
+      try {
+        devices = await bluetooth.getBondedDevices();
+      } on PlatformException {
+        print("Error");
+      }
+
+      // For knowing when bluetooth is connected and when disconnected
+      bluetooth.onStateChanged().listen((state) {
+        switch (state) {
+          case FlutterBluetoothSerial.CONNECTED:
+            setState(() {
+              _connected = true;
+              _pressed = false;
+            });
+
+            break;
+
+          case FlutterBluetoothSerial.DISCONNECTED:
+            setState(() {
+              _connected = false;
+              _pressed = false;
+            });
+            break;
+
+          default:
+            print(state);
+            break;
+        }
+      });
+      // It is an error to call [setState] unless [mounted] is true.
+      if (!mounted) {
+        return;
+      }
+
+      // Store the [devices] list in the [_devicesList] for accessing
+      // the list outside this class
+      setState(() {
+        _devicesList = devices;
+      });
+    }
+
+    Future show(
+        String message, {
+          Duration duration: const Duration(seconds: 3),
+        }) async {
+      await new Future.delayed(new Duration(milliseconds: 100));
+      _scaffoldKey.currentState.showSnackBar(
+        new SnackBar(
+          content: new Text(
+            message,
+          ),
+          duration: duration,
+        ),
+      );
+    }
+
+    // Method to connect to bluetooth
+    void _connect() {
+      if (_device == null) {
+        show('No device selected');
+      } else {
+        bluetooth.isConnected.then((isConnected) {
+          if (!isConnected) {
+            bluetooth
+                .connect(_device)
+                .timeout(Duration(seconds: 10))
+                .catchError((error) {
+              setState(() => _pressed = false);
+            });
+            setState(() => _pressed = true);
+          }
+        });
+      }
+    }
+
+    // Method to disconnect bluetooth
+    void _disconnect() {
+      bluetooth.disconnect();
+      setState(() => _pressed = true);
+    }
+    // set up the button
+    Widget okButton = FlatButton(
+      child: Text("OK"),
+      onPressed: () => Navigator.pop(context, true),
+    );
+
+    List<DropdownMenuItem<BluetoothDevice>> _getDeviceItems() {
+      List<DropdownMenuItem<BluetoothDevice>> items = [];
+      if (_devicesList.isEmpty) {
+        items.add(DropdownMenuItem(
+          child: Text('NONE'),
+        ));
+      } else {
+        _devicesList.forEach((device) {
+          items.add(DropdownMenuItem(
+            child: Text(device.name),
+            value: device,
+          ));
+        });
+      }
+      return items;
+    }
+
+    // set up the AlertDialog
+    AlertDialog alert = AlertDialog(
+      title: Text("Peripheriques Bluetooth"),
+      content:
+      DropdownButton(
+        // To be implemented : _getDeviceItems()
+        items: _getDeviceItems(),
+        onChanged: (value) => setState(() => _device = value),
+        value: _device,
+      ),
+      actions: [
+        okButton,
+        RaisedButton(
+          onPressed:
+          // To be implemented : _disconnect and _connect
+          _pressed ? null : _connected ? _disconnect : _connect,
+          child: Text(_connected ? 'Disconnect' : 'Connect'),
+        )],
+    );
+
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -193,32 +343,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-showAlertDialog(BuildContext context) {
-  // set up the button
-  Widget okButton = FlatButton(
-    child: Text("OK"),
-    onPressed: () => Navigator.pop(context, true),
-  );
-
-  // set up the AlertDialog
-  AlertDialog alert = AlertDialog(
-    title: Text("My title"),
-    content: Text("This is my message."),
-    actions: [
-      okButton,
-    ],
-  );
-
-  // show the dialog
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return alert;
-    },
-  );
-}
-
 showManualControlMode(BuildContext context) {}
+
 /* Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
