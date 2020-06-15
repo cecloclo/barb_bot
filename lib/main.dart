@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
@@ -221,6 +222,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Center(
                       child: Text(
                         "Connection Bluetooth",
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
@@ -242,7 +244,17 @@ class _MyHomePageState extends State<MyHomePage> {
               Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: <Widget>[
+                  Text(
+                    "CONTROLE LANCE",
+                    style: TextStyle(
+                      fontStyle: FontStyle.normal,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 25,
+
+                    ),
+                  ),
                   Container(
+                    color: Colors.lightBlue,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: <Widget>[
@@ -252,6 +264,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           FloatingActionButton(
                             onPressed: null,
                             child: Center(child: Icon(Icons.arrow_back)),
+                            backgroundColor: Colors.red,
+                            focusColor: Colors.black26,
                           )
                         ],
                       ),
@@ -264,6 +278,9 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: FloatingActionButton(
                               onPressed: null,
                               child: Center(child: Icon(Icons.arrow_upward)),
+                              backgroundColor: Colors.blueGrey,
+                              focusColor: Colors.black26,
+
                             ),
                           ),
                           Padding(
@@ -271,6 +288,9 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: FloatingActionButton(
                               onPressed: null,
                               child: Center(child: Icon(Icons.arrow_downward)),
+                              backgroundColor: Colors.blueGrey,
+                              focusColor: Colors.black26,
+
                             ),
                           ),
                         ],
@@ -280,13 +300,25 @@ class _MyHomePageState extends State<MyHomePage> {
                           FloatingActionButton(
                             onPressed: null,
                             child: Center(child: Icon(Icons.arrow_forward)),
+                            backgroundColor: Colors.red,
+                            focusColor: Colors.black26,
+
                           )
                         ],
                       ),
                     ],
                   )),
+                  Text(
+                    "CONTROLE ROBOT",
+                    style: TextStyle(
+                      fontStyle: FontStyle.normal,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 25,
+
+                    ),
+                  ),
                   Container(
-                      
+                      color: Colors.grey,
                       child: Row(
                         mainAxisSize: MainAxisSize.max,
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -297,6 +329,9 @@ class _MyHomePageState extends State<MyHomePage> {
                               FloatingActionButton(
                                 onPressed: null,
                                 child: Center(child: Icon(Icons.arrow_back)),
+                                backgroundColor: Colors.blueGrey,
+                                focusColor: Colors.black26,
+
                               )
                             ],
                           ),
@@ -309,6 +344,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: FloatingActionButton(
                                   onPressed: null,
                                   child: Center(child: Icon(Icons.arrow_upward)),
+                                  backgroundColor: Colors.red,
+                                  focusColor: Colors.black26,
+
                                 ),
                               ),
                               Padding(
@@ -316,6 +354,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: FloatingActionButton(
                                   onPressed: null,
                                   child: Center(child: Icon(Icons.arrow_downward)),
+                                  backgroundColor: Colors.red,
+                                  focusColor: Colors.black26,
+
                                 ),
                               ),
                             ],
@@ -325,6 +366,9 @@ class _MyHomePageState extends State<MyHomePage> {
                               FloatingActionButton(
                                 onPressed: null,
                                 child: Center(child: Icon(Icons.arrow_forward)),
+                                backgroundColor: Colors.blueGrey,
+                                focusColor: Colors.black26,
+
                               )
                             ],
                           ),
@@ -340,6 +384,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                         FloatingActionButton(
                             onPressed: null,
+                          backgroundColor: Colors.red,
                           child: Center(child: Icon(Icons.volume_up),),
                         )
                       ],
