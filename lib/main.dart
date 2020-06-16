@@ -229,17 +229,49 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
               Center(
-                child: Card(
-                  color: Colors.red,
-                  child: Container(
-                    width: 150,
-                    height: 200,
-                    child: Text("Volume du réservoir",
-                        style: TextStyle(
-                          fontSize: 24.0,
-                        )),
-                  ),
-                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    Card(
+                      //color: Colors.red,
+                      child: Container(
+                        width: 150,
+                        height: 200,
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: <Widget>[
+                              Text("Alerte Feu",
+                                  style: TextStyle(
+                                    fontSize: 24.0,
+                                  )),
+                              SizedBox(
+                                  height: 80.0,
+                                  child: Image.asset('assets/Image/safe.png')
+                              ),
+                            ]),
+                      ),
+                    ),
+                    Card(
+                      //color: Colors.red,
+                      child: Container(
+                        width: 150,
+                        height: 200,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: <Widget>[
+                          Text("Volume du réservoir",
+                              style: TextStyle(
+                                fontSize: 24.0,
+                              )),
+                          SizedBox(
+                            height: 80.0,
+                            child: Image.asset('assets/Image/eau.png')
+                          ),
+                        ]),
+                      ),
+                    ),
+                ]),
               ),
               Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
