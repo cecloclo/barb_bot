@@ -338,21 +338,21 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: <Widget>[
+                                  Text("Localisation",
+                                      style: TextStyle(
+                                      fontSize: 24.0,)),
                                   if (_currentPosition != null) Text(_currentAddress),
                                   FlatButton(
-                                    child: Text("Localisation",
-                                        style: TextStyle(
-                                          fontSize: 24.0,
-                                        )),
+                                    child: Container(
+                                        padding: new EdgeInsets.all(15.0),
+                                        height: 110.0,
+                                        child: Image.asset('assets/Image/gps.png')
+                                    ),
                                     onPressed: () {
                                       _getCurrentLocation();
                                     },
                                   ),
-                                  Container(
-                                      padding: new EdgeInsets.all(15.0),
-                                      height: 110.0,
-                                      child: Image.asset('assets/Image/gps.png')
-                                  ),
+
                                 ]),
                           ),
                         ),
