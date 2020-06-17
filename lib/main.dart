@@ -1,9 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:flutter_blue/flutter_blue.dart';
 
 void main() {
   runApp(MyApp());
@@ -41,146 +40,95 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
-  showAlertDialog(BuildContext context) {
-
-    // Initializing a global key, as it would help us in showing a SnackBar later
-    final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
-    // Get the instance of the bluetooth
-    FlutterBluetoothSerial bluetooth = FlutterBluetoothSerial.instance;
-
-    // Define some variables, which will be required later
-    List<BluetoothDevice> _devicesList = [];
-    BluetoothDevice _device;
-    bool _connected = false;
-    bool _pressed = false;
-
-    // We are using async callback for using await
-    Future<void> bluetoothConnectionState() async {
-      List<BluetoothDevice> devices = [];
-
-      // To get the list of paired devices
-      try {
-        devices = await bluetooth.getBondedDevices();
-      } on PlatformException {
-        print("Error");
+  //We're making these three things global so that we-
+//can check the state and device later in this class
+  BluetoothDevice device;
+  BluetoothState state;
+  BluetoothDeviceState deviceState;
+  ///Initialisation and listening to device state
+  @override
+  void initState() {
+    super.initState();
+//checks bluetooth current state
+    FlutterBlue.instance.state.listen((state) {
+      if (state == BluetoothState.off) {
+//Alert user to turn on bluetooth.
+      } else if (state == BluetoothState.on) {
+//if bluetooth is enabled then go ahead.
+//Make sure user's device gps is on.
+        scanForDevices();
       }
+    });
+  }
 
-      // For knowing when bluetooth is connected and when disconnected
-      bluetooth.onStateChanged().listen((state) {
-        switch (state) {
-          case FlutterBluetoothSerial.CONNECTED:
-            setState(() {
-              _connected = true;
-              _pressed = false;
-            });
-
-            break;
-
-          case FlutterBluetoothSerial.DISCONNECTED:
-            setState(() {
-              _connected = false;
-              _pressed = false;
-            });
-            break;
-
-          default:
-            print(state);
-            break;
-        }
-      });
-      // It is an error to call [setState] unless [mounted] is true.
-      if (!mounted) {
-        return;
+  ///// **** Scan and Stop Bluetooth Methods  ***** /////
+  void scanForDevices() async {
+    scanSubscription = bluetoothInstance.scan().listen((scanResult) async {
+      if (scanResult.device.name == "your_device_name") {
+        print("found device");
+//Assigning bluetooth device
+        device = scanResult.device;
+//After that we stop the scanning for device
+        stopScanning();
       }
+    });
+  }
+  void stopScanning() {
+    bluetoothInstance.stopScan();
+    scanSubscription.cancel();
+  }
 
-      // Store the [devices] list in the [_devicesList] for accessing
-      // the list outside this class
-      setState(() {
-        _devicesList = devices;
-      });
-    }
+  ///// ******* Bluetooth device Handling Methods ******** //////
+  connectToDevice() async {
+//flutter_blue makes our life easier
+    await device.connect();
+//After connection start dicovering services
+    discoverServices();
+  }
 
-    Future show(
-        String message, {
-          Duration duration: const Duration(seconds: 3),
-        }) async {
-      await new Future.delayed(new Duration(milliseconds: 100));
-      _scaffoldKey.currentState.showSnackBar(
-        new SnackBar(
-          content: new Text(
-            message,
-          ),
-          duration: duration,
-        ),
-      );
-    }
-
-    // Method to connect to bluetooth
-    void _connect() {
-      if (_device == null) {
-        show('No device selected');
-      } else {
-        bluetooth.isConnected.then((isConnected) {
-          if (!isConnected) {
-            bluetooth
-                .connect(_device)
-                .timeout(Duration(seconds: 10))
-                .catchError((error) {
-              setState(() => _pressed = false);
-            });
-            setState(() => _pressed = true);
+  // ADD YOUR OWN SERVICES & CHAR UUID, EACH DEVICE HAS DIFFERENT UUID
+// device Proprietary characteristics of the ISSC service
+  static const ISSC_PROPRIETARY_SERVICE_UUID = "35111C0000110100001000800000805F9B34FB";
+//device char for ISSC characteristics
+  static const UUIDSTR_ISSC_TRANS_TX = "35111C0000110100001000800000805F9B34FB";
+  static const UUIDSTR_ISSC_TRANS_RX = "35111C0000110100001000800000805F9B34FB";
+// This characteristic to send command to device
+  BluetoothCharacteristic c;
+//This stream is for taking characteristic's value
+//for reading data provided by device
+  Stream<List<int>> listStream;
+  discoverServices() async {
+    List<BluetoothService> services = await device.discoverServices();
+//checking each services provided by device
+    services.forEach((service) {
+      if (service.uuid.toString() == ISSC_PROPRIETARY_SERVICE_UUID) {
+        service.characteristics.forEach((characteristic) {
+          if (characteristic.uuid.toString() == UUIDSTR_ISSC_TRANS_RX) {
+//Updating characteristic to perform write operation.
+            c = characteristic;
+          } else if (characteristic.uuid.toString() == UUIDSTR_ISSC_TRANS_TX) {
+//Updating stream to perform read operation.
+            listStream = characteristic.value;
+            characteristic.setNotifyValue(!characteristic.isNotifying);
           }
         });
       }
-    }
+    });
+  }
 
-    // Method to disconnect bluetooth
-    void _disconnect() {
-      bluetooth.disconnect();
-      setState(() => _pressed = true);
-    }
-    // set up the button
-    Widget okButton = FlatButton(
-      child: Text("OK"),
-      onPressed: () => Navigator.pop(context, true),
-    );
-
-    List<DropdownMenuItem<BluetoothDevice>> _getDeviceItems() {
-      List<DropdownMenuItem<BluetoothDevice>> items = [];
-      if (_devicesList.isEmpty) {
-        items.add(DropdownMenuItem(
-          child: Text('NONE'),
-        ));
-      } else {
-        _devicesList.forEach((device) {
-          items.add(DropdownMenuItem(
-            child: Text(device.name),
-            value: device,
-          ));
-        });
-      }
-      return items;
-    }
+  showAlertDialog(BuildContext context) {
 
     // set up the AlertDialog
     AlertDialog alert = AlertDialog(
-      title: Text("Peripheriques Bluetooth"),
-      content:
-      DropdownButton(
-        // To be implemented : _getDeviceItems()
-        items: _getDeviceItems(),
-        onChanged: (value) => setState(() => _device = value),
-        value: _device,
-      ),
+      title: Text("Bluetooth"),
+      content: Text("Connexion"),
       actions: [
-        okButton,
-        RaisedButton(
-          onPressed:
-          // To be implemented : _disconnect and _connect
-          _pressed ? null : _connected ? _disconnect : _connect,
-          child: Text(_connected ? 'Disconnect' : 'Connect'),
-        )],
-    );
+      okButton,
+        child: FlatButton(
+        onPressed:connectToDevice();
+        child: Text("Connecté"),
+        ),
+      ]);
 
     // show the dialog
     showDialog(
