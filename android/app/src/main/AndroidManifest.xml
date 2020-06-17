@@ -36,4 +36,11 @@
             android:value="2" />
     </application>
     <uses-sdk tools:overrideLibrary="io.github.edufolly.flutterbluetoothserial"/>
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.WHEN_IN_USE_LOCATION" />
+    <uses-permission android:name="android.permission.ALWAYS_LOCATION" />
 </manifest>

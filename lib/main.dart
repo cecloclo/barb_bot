@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
 void main() {
@@ -190,6 +191,40 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  final Geolocator geolocator = Geolocator()..forceAndroidLocationManager;
+
+  Position _currentPosition;
+  String _currentAddress;
+  _getCurrentLocation() {
+    geolocator
+        .getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
+        .then((Position position) {
+      setState(() {
+        _currentPosition = position;
+      });
+
+      _getAddressFromLatLng();
+    }).catchError((e) {
+      print(e);
+    });
+  }
+
+  _getAddressFromLatLng() async {
+    try {
+      List<Placemark> p = await geolocator.placemarkFromCoordinates(
+          _currentPosition.latitude, _currentPosition.longitude);
+
+      Placemark place = p[0];
+
+      setState(() {
+        _currentAddress =
+        "${place.locality}, ${place.postalCode}, ${place.country}";
+      });
+    } catch (e) {
+      print(e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -228,51 +263,101 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
               ),
-              Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: <Widget>[
-                    Card(
-                      //color: Colors.red,
-                      child: Container(
-                        width: 150,
-                        height: 200,
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: <Widget>[
-                              Text("Alerte Feu",
-                                  style: TextStyle(
-                                    fontSize: 24.0,
-                                  )),
-                              SizedBox(
-                                  height: 80.0,
-                                  child: Image.asset('assets/Image/safe.png')
-                              ),
-                            ]),
-                      ),
-                    ),
-                    Card(
-                      //color: Colors.red,
-                      child: Container(
-                        width: 150,
-                        height: 200,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: <Widget>[
-                          Text("Volume du réservoir",
-                              style: TextStyle(
-                                fontSize: 24.0,
-                              )),
-                          SizedBox(
-                            height: 80.0,
-                            child: Image.asset('assets/Image/eau.png')
+              Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      Row( children: [
+                        Card(
+                          //color: Colors.red,
+                          child: Container(
+                            width: 170,
+                            height: 200,
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: <Widget>[
+                                  Container(
+                                      padding: new EdgeInsets.all(15.0),
+                                      height: 110.0,
+                                      child: Image.asset('assets/Image/safe.png')
+                                  ),
+                                  Text("Alerte Feu",
+                                      style: TextStyle(
+                                        fontSize: 24.0,
+                                      )),
+                                ]),
                           ),
-                        ]),
-                      ),
-                    ),
-                ]),
-              ),
+                        ),
+                        Card(
+                          //color: Colors.red,
+                          child: Container(
+                            width: 170,
+                            height: 200,
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: <Widget>[
+                                  Container(
+                                      padding: new EdgeInsets.all(15.0),
+                                      height: 110.0,
+                                      child: Image.asset('assets/Image/eau.png')
+                                  ),
+                                  Text("Réservoir",
+                                      style: TextStyle(
+                                        fontSize: 24.0,
+                                      )),
+                                ]),
+                          ),
+                        ),
+                      ]),
+                      Row( children: [
+                        Card(
+                          //color: Colors.red,
+                          child: Container(
+                            width: 170,
+                            height: 200,
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: <Widget>[
+                                  Container(
+                                      padding: new EdgeInsets.all(15.0),
+                                      height: 110.0,
+                                      child: Image.asset('assets/Image/temp.png')
+                                  ),
+                                  Text("Température",
+                                      style: TextStyle(
+                                        fontSize: 24.0,
+                                      )),
+                                ]),
+                          ),
+                        ),
+                        Card(
+                          //color: Colors.red,
+                          child: Container(
+                            width: 170,
+                            height: 200,
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: <Widget>[
+                                  if (_currentPosition != null) Text(_currentAddress),
+                                  FlatButton(
+                                    child: Text("Localisation",
+                                        style: TextStyle(
+                                          fontSize: 24.0,
+                                        )),
+                                    onPressed: () {
+                                      _getCurrentLocation();
+                                    },
+                                  ),
+                                  Container(
+                                      padding: new EdgeInsets.all(15.0),
+                                      height: 110.0,
+                                      child: Image.asset('assets/Image/gps.png')
+                                  ),
+                                ]),
+                          ),
+                        ),
+                      ]),
+                    ]),
               Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: <Widget>[
