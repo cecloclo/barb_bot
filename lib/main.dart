@@ -45,6 +45,10 @@ class _MyHomePageState extends State<MyHomePage> {
   BluetoothDevice device;
   BluetoothState state;
   BluetoothDeviceState deviceState;
+
+  get okButton => null;
+
+  get child => null;
   ///Initialisation and listening to device state
   @override
   void initState() {
@@ -124,7 +128,7 @@ class _MyHomePageState extends State<MyHomePage> {
       content: Text("Connexion"),
       actions: [
       okButton,
-        child: FlatButton(
+        child : FlatButton(
         onPressed:connectToDevice();
         child: Text("Connecté"),
         ),
