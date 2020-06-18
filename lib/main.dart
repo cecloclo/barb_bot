@@ -46,7 +46,7 @@ class _MyHomePageState extends State<MyHomePage> {
   BluetoothState state;
   BluetoothDeviceState deviceState;
 
-  get okButton => null;
+  //get okButton => null;
 
   get child => null;
   ///Initialisation and listening to device state
@@ -65,9 +65,10 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  var scanSubscription;
   ///// **** Scan and Stop Bluetooth Methods  ***** /////
   void scanForDevices() async {
-    scanSubscription = bluetoothInstance.scan().listen((scanResult) async {
+    scanSubscription = FlutterBlue.instance.scan().listen((scanResult) async {
       if (scanResult.device.name == "your_device_name") {
         print("found device");
 //Assigning bluetooth device
@@ -78,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
   void stopScanning() {
-    bluetoothInstance.stopScan();
+    FlutterBlue.instance.stopScan();
     scanSubscription.cancel();
   }
 
@@ -121,16 +122,16 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   showAlertDialog(BuildContext context) {
-
     // set up the AlertDialog
     AlertDialog alert = AlertDialog(
       title: Text("Bluetooth"),
       content: Text("Connexion"),
       actions: [
-      okButton,
-        child : FlatButton(
-        onPressed:connectToDevice();
-        child: Text("Connecté"),
+        FlatButton(
+          child: Text('Ok'),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
         ),
       ]);
 
@@ -204,6 +205,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   height: 150.0,
                   child: FloatingActionButton(
                     onPressed: () {
+                      connectToDevice();
                       showAlertDialog(context);
                     },
                     child: Center(
