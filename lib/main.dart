@@ -2,7 +2,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:scoped_model/scoped_model.dart';
+import 'dart:async';
+
+import './DiscoveryPage.dart';
+import './ChatPage.dart';
+import './SelectBoundedDevicePage.dart';
+import './BackgroundCollectingTask.dart';
+import './BackgroundCollectPage.dart';
 
 void main() {
   runApp(MyApp());
@@ -10,6 +18,7 @@ void main() {
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -40,100 +49,129 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
-  //We're making these three things global so that we-
-//can check the state and device later in this class
-  BluetoothDevice device;
-  BluetoothState state;
-  BluetoothDeviceState deviceState;
+  //Main page
+  BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
 
-  //get okButton => null;
+  String _address = "...";
+  String _name = "...";
 
-  get child => null;
-  ///Initialisation and listening to device state
+  Timer _discoverableTimeoutTimer;
+  int _discoverableTimeoutSecondsLeft = 0;
+
+  BackgroundCollectingTask _collectingTask;
+
+  bool _autoAcceptPairingRequests = false;
+
   @override
   void initState() {
     super.initState();
-//checks bluetooth current state
-    FlutterBlue.instance.state.listen((state) {
-      if (state == BluetoothState.off) {
-//Alert user to turn on bluetooth.
-      } else if (state == BluetoothState.on) {
-//if bluetooth is enabled then go ahead.
-//Make sure user's device gps is on.
-        scanForDevices();
-      }
+
+    // Get current state
+    FlutterBluetoothSerial.instance.state.then((state) {
+      setState(() {
+        _bluetoothState = state;
+      });
     });
-  }
 
-  var scanSubscription;
-  ///// **** Scan and Stop Bluetooth Methods  ***** /////
-  void scanForDevices() async {
-    scanSubscription = FlutterBlue.instance.scan().listen((scanResult) async {
-      if (scanResult.device.name == "your_device_name") {
-        print("found device");
-//Assigning bluetooth device
-        device = scanResult.device;
-//After that we stop the scanning for device
-        stopScanning();
+    Future.doWhile(() async {
+      // Wait if adapter not enabled
+      if (await FlutterBluetoothSerial.instance.isEnabled) {
+        return false;
       }
-    });
-  }
-  void stopScanning() {
-    FlutterBlue.instance.stopScan();
-    scanSubscription.cancel();
-  }
-
-  ///// ******* Bluetooth device Handling Methods ******** //////
-  connectToDevice() async {
-//flutter_blue makes our life easier
-    await device.connect();
-//After connection start dicovering services
-    discoverServices();
-  }
-
-  // ADD YOUR OWN SERVICES & CHAR UUID, EACH DEVICE HAS DIFFERENT UUID
-// device Proprietary characteristics of the ISSC service
-  static const ISSC_PROPRIETARY_SERVICE_UUID = "35111C0000110100001000800000805F9B34FB";
-//device char for ISSC characteristics
-  static const UUIDSTR_ISSC_TRANS_TX = "35111C0000110100001000800000805F9B34FB";
-  static const UUIDSTR_ISSC_TRANS_RX = "35111C0000110100001000800000805F9B34FB";
-// This characteristic to send command to device
-  BluetoothCharacteristic c;
-//This stream is for taking characteristic's value
-//for reading data provided by device
-  Stream<List<int>> listStream;
-  discoverServices() async {
-    List<BluetoothService> services = await device.discoverServices();
-//checking each services provided by device
-    services.forEach((service) {
-      if (service.uuid.toString() == ISSC_PROPRIETARY_SERVICE_UUID) {
-        service.characteristics.forEach((characteristic) {
-          if (characteristic.uuid.toString() == UUIDSTR_ISSC_TRANS_RX) {
-//Updating characteristic to perform write operation.
-            c = characteristic;
-          } else if (characteristic.uuid.toString() == UUIDSTR_ISSC_TRANS_TX) {
-//Updating stream to perform read operation.
-            listStream = characteristic.value;
-            characteristic.setNotifyValue(!characteristic.isNotifying);
-          }
+      await Future.delayed(Duration(milliseconds: 0xDD));
+      return true;
+    }).then((_) {
+      // Update the address field
+      FlutterBluetoothSerial.instance.address.then((address) {
+        setState(() {
+          _address = address;
         });
-      }
+      });
+    });
+
+    FlutterBluetoothSerial.instance.name.then((name) {
+      setState(() {
+        _name = name;
+      });
+    });
+
+    // Listen for futher state changes
+    FlutterBluetoothSerial.instance
+        .onStateChanged()
+        .listen((BluetoothState state) {
+      setState(() {
+        _bluetoothState = state;
+
+        // Discoverable mode is disabled when Bluetooth gets disabled
+        _discoverableTimeoutTimer = null;
+        _discoverableTimeoutSecondsLeft = 0;
+      });
     });
   }
 
+  @override
+  void dispose() {
+    FlutterBluetoothSerial.instance.setPairingRequestHandler(null);
+    _collectingTask?.dispose();
+    _discoverableTimeoutTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startChat(BuildContext context, BluetoothDevice server) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) {
+          return ChatPage(server: server);
+        },
+      ),
+    );
+  }
+
+  Future<void> _startBackgroundTask(
+      BuildContext context,
+      BluetoothDevice server,
+      ) async {
+    try {
+      _collectingTask = await BackgroundCollectingTask.connect(server);
+      await _collectingTask.start();
+    } catch (ex) {
+      if (_collectingTask != null) {
+        _collectingTask.cancel();
+      }
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Error occured while connecting'),
+            content: Text("${ex.toString()}"),
+            actions: <Widget>[
+              new FlatButton(
+                child: new Text("Close"),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  //BackgroundCollect
   showAlertDialog(BuildContext context) {
     // set up the AlertDialog
     AlertDialog alert = AlertDialog(
-      title: Text("Bluetooth"),
-      content: Text("Connexion"),
-      actions: [
-        FlatButton(
-          child: Text('Ok'),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-      ]);
+        title: Text("Bluetooth"),
+        content: Text("Connexion"),
+        actions: [
+          FlatButton(
+            child: Text('Ok'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ]);
 
     // show the dialog
     showDialog(
@@ -144,10 +182,12 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  final Geolocator geolocator = Geolocator()..forceAndroidLocationManager;
+  final Geolocator geolocator = Geolocator()
+    ..forceAndroidLocationManager;
 
   Position _currentPosition;
   String _currentAddress;
+
   _getCurrentLocation() {
     geolocator
         .getCurrentPosition(desiredAccuracy: LocationAccuracy.best)
@@ -199,119 +239,191 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           body: TabBarView(
             children: [
-              Center(
-                child: SizedBox(
-                  width: 150.0,
-                  height: 150.0,
-                  child: FloatingActionButton(
-                    onPressed: () {
-                      connectToDevice();
-                      showAlertDialog(context);
-                    },
-                    child: Center(
-                      child: Text(
-                        "Connection Bluetooth",
-                        textAlign: TextAlign.center,
+              Container(
+                child: ListView(
+                  children: <Widget>[
+                    Divider(),
+                    ListTile(title: const Text('General')),
+                    SwitchListTile(
+                      title: const Text('Enable Bluetooth'),
+                      value: _bluetoothState.isEnabled,
+                      onChanged: (bool value) {
+                        // Do the request and update with the true value then
+                        future() async {
+                          // async lambda seems to not working
+                          if (value)
+                            await FlutterBluetoothSerial.instance.requestEnable();
+                          else
+                            await FlutterBluetoothSerial.instance.requestDisable();
+                        }
+
+                        future().then((_) {
+                          setState(() {});
+                        });
+                      },
+                    ),
+                    ListTile(
+                      title: const Text('Bluetooth status'),
+                      subtitle: Text(_bluetoothState.toString()),
+                      trailing: RaisedButton(
+                        child: const Text('Settings'),
+                        onPressed: () {
+                          FlutterBluetoothSerial.instance.openSettings();
+                        },
                       ),
                     ),
-                  ),
+                    ListTile(
+                      title: const Text('Local adapter address'),
+                      subtitle: Text(_address),
+                    ),
+                    ListTile(
+                      title: const Text('Local adapter name'),
+                      subtitle: Text(_name),
+                      onLongPress: null,
+                    ),
+                    Divider(),
+                    ListTile(title: const Text('Devices discovery and connection')),
+                    ListTile(
+                      title: RaisedButton(
+                          child: const Text('Explore discovered devices'),
+                          onPressed: () async {
+                            final BluetoothDevice selectedDevice =
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) {
+                                  return DiscoveryPage();
+                                },
+                              ),
+                            );
+
+                            if (selectedDevice != null) {
+                              print('Discovery -> selected ' + selectedDevice.address);
+                            } else {
+                              print('Discovery -> no device selected');
+                            }
+                          }),
+                    ),
+                    ListTile(
+                      title: RaisedButton(
+                        child: const Text('Connect to paired device to chat'),
+                        onPressed: () async {
+                          final BluetoothDevice selectedDevice =
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) {
+                                return SelectBondedDevicePage(checkAvailability: false);
+                              },
+                            ),
+                          );
+
+                          if (selectedDevice != null) {
+                            print('Connect -> selected ' + selectedDevice.address);
+                            _startChat(context, selectedDevice);
+                          } else {
+                            print('Connect -> no device selected');
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      Row( children: [
-                        Card(
-                          //color: Colors.red,
-                          child: Container(
-                            width: 170,
-                            height: 200,
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: <Widget>[
-                                  Container(
-                                      padding: new EdgeInsets.all(15.0),
-                                      height: 110.0,
-                                      child: Image.asset('assets/Image/safe.png')
-                                  ),
-                                  Text("Alerte Feu",
-                                      style: TextStyle(
-                                        fontSize: 24.0,
-                                      )),
-                                ]),
-                          ),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: <Widget>[
+                    Row(children: [
+                      Card(
+                        //color: Colors.red,
+                        child: Container(
+                          width: 170,
+                          height: 200,
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: <Widget>[
+                                Container(
+                                    padding: new EdgeInsets.all(15.0),
+                                    height: 110.0,
+                                    child: Image.asset('assets/Image/safe.png')
+                                ),
+                                Text("Alerte Feu",
+                                    style: TextStyle(
+                                      fontSize: 24.0,
+                                    )),
+                              ]),
                         ),
-                        Card(
-                          //color: Colors.red,
-                          child: Container(
-                            width: 170,
-                            height: 200,
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: <Widget>[
-                                  Container(
-                                      padding: new EdgeInsets.all(15.0),
-                                      height: 110.0,
-                                      child: Image.asset('assets/Image/eau.png')
-                                  ),
-                                  Text("Réservoir",
-                                      style: TextStyle(
-                                        fontSize: 24.0,
-                                      )),
-                                ]),
-                          ),
+                      ),
+                      Card(
+                        //color: Colors.red,
+                        child: Container(
+                          width: 170,
+                          height: 200,
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: <Widget>[
+                                Container(
+                                    padding: new EdgeInsets.all(15.0),
+                                    height: 110.0,
+                                    child: Image.asset('assets/Image/eau.png')
+                                ),
+                                Text("Réservoir",
+                                    style: TextStyle(
+                                      fontSize: 24.0,
+                                    )),
+                              ]),
                         ),
-                      ]),
-                      Row( children: [
-                        Card(
-                          //color: Colors.red,
-                          child: Container(
-                            width: 170,
-                            height: 200,
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: <Widget>[
-                                  Container(
-                                      padding: new EdgeInsets.all(15.0),
-                                      height: 110.0,
-                                      child: Image.asset('assets/Image/temp.png')
-                                  ),
-                                  Text("Température",
-                                      style: TextStyle(
-                                        fontSize: 24.0,
-                                      )),
-                                ]),
-                          ),
-                        ),
-                        Card(
-                          //color: Colors.red,
-                          child: Container(
-                            width: 170,
-                            height: 200,
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: <Widget>[
-                                  Text("Localisation",
-                                      style: TextStyle(
-                                      fontSize: 24.0,)),
-                                  if (_currentPosition != null) Text(_currentAddress),
-                                  FlatButton(
-                                    child: Container(
-                                        padding: new EdgeInsets.all(15.0),
-                                        height: 110.0,
-                                        child: Image.asset('assets/Image/gps.png')
-                                    ),
-                                    onPressed: () {
-                                      _getCurrentLocation();
-                                    },
-                                  ),
-
-                                ]),
-                          ),
-                        ),
-                      ]),
+                      ),
                     ]),
+                    Row(children: [
+                      Card(
+                        //color: Colors.red,
+                        child: Container(
+                          width: 170,
+                          height: 200,
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: <Widget>[
+                                Container(
+                                    padding: new EdgeInsets.all(15.0),
+                                    height: 110.0,
+                                    child: Image.asset('assets/Image/temp.png')
+                                ),
+                                Text("Température",
+                                    style: TextStyle(
+                                      fontSize: 24.0,
+                                    )),
+                              ]),
+                        ),
+                      ),
+                      Card(
+                        //color: Colors.red,
+                        child: Container(
+                          width: 170,
+                          height: 200,
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: <Widget>[
+                                Text("Localisation",
+                                    style: TextStyle(
+                                      fontSize: 24.0,)),
+                                if (_currentPosition != null) Text(
+                                    _currentAddress),
+                                FlatButton(
+                                  child: Container(
+                                      padding: new EdgeInsets.all(15.0),
+                                      height: 110.0,
+                                      child: Image.asset('assets/Image/gps.png')
+                                  ),
+                                  onPressed: () {
+                                    _getCurrentLocation();
+                                  },
+                                ),
+
+                              ]),
+                        ),
+                      ),
+                    ]),
+                  ]),
               Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: <Widget>[
@@ -325,60 +437,62 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                   Container(
-                    color: Colors.lightBlue,
+                      color: Colors.lightBlue,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: <Widget>[
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
-                          FloatingActionButton(
-                            onPressed: null,
-                            child: Center(child: Icon(Icons.arrow_back)),
-                            backgroundColor: Colors.red,
-                            focusColor: Colors.black26,
-                          )
-                        ],
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Padding(
-                            padding: const EdgeInsets.all(10.0),
-                            child: FloatingActionButton(
-                              onPressed: null,
-                              child: Center(child: Icon(Icons.arrow_upward)),
-                              backgroundColor: Colors.blueGrey,
-                              focusColor: Colors.black26,
-
-                            ),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              FloatingActionButton(
+                                onPressed: null,
+                                child: Center(child: Icon(Icons.arrow_back)),
+                                backgroundColor: Colors.red,
+                                focusColor: Colors.black26,
+                              )
+                            ],
                           ),
-                          Padding(
-                            padding: const EdgeInsets.all(10.0),
-                            child: FloatingActionButton(
-                              onPressed: null,
-                              child: Center(child: Icon(Icons.arrow_downward)),
-                              backgroundColor: Colors.blueGrey,
-                              focusColor: Colors.black26,
+                          Column(
+                            mainAxisSize: MainAxisSize.max,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Padding(
+                                padding: const EdgeInsets.all(10.0),
+                                child: FloatingActionButton(
+                                  onPressed: null,
+                                  child: Center(
+                                      child: Icon(Icons.arrow_upward)),
+                                  backgroundColor: Colors.blueGrey,
+                                  focusColor: Colors.black26,
 
-                            ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(10.0),
+                                child: FloatingActionButton(
+                                  onPressed: null,
+                                  child: Center(
+                                      child: Icon(Icons.arrow_downward)),
+                                  backgroundColor: Colors.blueGrey,
+                                  focusColor: Colors.black26,
+
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            children: <Widget>[
+                              FloatingActionButton(
+                                onPressed: null,
+                                child: Center(child: Icon(Icons.arrow_forward)),
+                                backgroundColor: Colors.red,
+                                focusColor: Colors.black26,
+
+                              )
+                            ],
                           ),
                         ],
-                      ),
-                      Column(
-                        children: <Widget>[
-                          FloatingActionButton(
-                            onPressed: null,
-                            child: Center(child: Icon(Icons.arrow_forward)),
-                            backgroundColor: Colors.red,
-                            focusColor: Colors.black26,
-
-                          )
-                        ],
-                      ),
-                    ],
-                  )),
+                      )),
                   Text(
                     "CONTROLE ROBOT",
                     style: TextStyle(
@@ -414,7 +528,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                 padding: const EdgeInsets.all(20.0),
                                 child: FloatingActionButton(
                                   onPressed: null,
-                                  child: Center(child: Icon(Icons.arrow_upward)),
+                                  child: Center(
+                                      child: Icon(Icons.arrow_upward)),
                                   backgroundColor: Colors.red,
                                   focusColor: Colors.black26,
 
@@ -424,7 +539,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                 padding: const EdgeInsets.all(10.0),
                                 child: FloatingActionButton(
                                   onPressed: null,
-                                  child: Center(child: Icon(Icons.arrow_downward)),
+                                  child: Center(
+                                      child: Icon(Icons.arrow_downward)),
                                   backgroundColor: Colors.red,
                                   focusColor: Colors.black26,
 
@@ -450,11 +566,11 @@ class _MyHomePageState extends State<MyHomePage> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: <Widget>[
                         FloatingActionButton(
-                            onPressed: null,
-                            child: Center(child: Text("EAU")),
+                          onPressed: null,
+                          child: Center(child: Text("EAU")),
                         ),
                         FloatingActionButton(
-                            onPressed: null,
+                          onPressed: null,
                           backgroundColor: Colors.red,
                           child: Center(child: Icon(Icons.volume_up),),
                         )
@@ -470,70 +586,3 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
-
-showManualControlMode(BuildContext context) {}
-
-/* Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    Align(
-      alignment: Alignment.centerLeft,
-    );
-    return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title), centerTitle: true,
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child : TabBar({)
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          children: <Widget>[
-            Image.asset('assets/Image/safe.png', height: 80, width: 80,),
-            Text('Volume eau'),
-            SizedBox(
-                width: 100.0,
-                height: 100.0,
-                child: FloatingActionButton(
-                  onPressed: () {
-                    showAlertDialog(context);
-                  },
-                  child: Text(
-                    "Connection Bluetooth",
-                  ),
-                )
-            ),
-          SizedBox(
-          width: 100.0,
-          height: 100.0,
-          child: FloatingActionButton(
-              onPressed: () {
-
-              },
-              child: Text(
-                "Mode Manuel",
-              ),
-            )
-          ),
-          ]
-        ),
-      ),
-    );
-  }
-*/
