@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
+
 class ChatPage extends StatefulWidget {
   final BluetoothDevice server;
 
@@ -211,7 +212,7 @@ class _ChatPage extends State<ChatPage> {
 
   void _sendMessage(String text) async {
     text = text.trim();
-    textEditingController.clear();
+    //textEditingController.clear();
 
     if (text.length > 0) {
       try {

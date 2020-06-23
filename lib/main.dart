@@ -127,6 +127,12 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  void sendMessage(String text){
+
+
+
+  }
+
   Future<void> _startBackgroundTask(
       BuildContext context,
       BluetoothDevice server,
@@ -163,7 +169,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // set up the AlertDialog
     AlertDialog alert = AlertDialog(
         title: Text("Bluetooth"),
-        content: Text("Connexion"),
+        content: Text("Connecté"),
         actions: [
           FlatButton(
             child: Text('Ok'),
@@ -318,7 +324,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
                           if (selectedDevice != null) {
                             print('Connect -> selected ' + selectedDevice.address);
-                            _startChat(context, selectedDevice);
+                            showAlertDialog(context);
+                            //_startChat(context, selectedDevice);
                           } else {
                             print('Connect -> no device selected');
                           }
