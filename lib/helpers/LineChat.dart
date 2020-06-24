@@ -25,11 +25,6 @@ class LineChart extends StatelessWidget {
   /// Constraints for the line chart.
   final BoxConstraints constraints;
 
-  // @TODO ? Both `_LineChartPainter` and `LineChart` have most the same fields.
-  //  `LineChart` is just mainly passing them to the painter. Shouldn't there be
-  //  only one class containing these data? Some `LineChartData` forged inside here
-  //  and then passed and used by the painter? :thinking:
-
   /// Padding around main drawng area. Necessary for displaying labels (around the chart).
   final EdgeInsets padding;
 
@@ -62,7 +57,6 @@ class LineChart extends StatelessWidget {
   /// Defines style of vertical lines. Might be null in order to prevent lines from drawing.
   final Paint verticalLinesPaint;
 
-  // @TODO . expose it
   final bool snapToLeftLabel = false;
   final bool snapToTopLabel = true;
   final bool snapToRightLabel = false;
@@ -209,7 +203,6 @@ class _LineChartPainter extends CustomPainter {
   /// Defines style of vertical lines. Might be null in order to prevent lines from drawing.
   final Paint verticalLinesPaint;
 
-  // @TODO . expose it
   final bool snapToLeftLabel = false;
   final bool snapToTopLabel = true;
   final bool snapToRightLabel = false;
@@ -320,7 +313,7 @@ class _LineChartPainter extends CustomPainter {
     final double height = size.height - padding.top - padding.bottom;
 
     /* Horizontal lines with labels */
-    double valuesOffset = 0; // @TODO ? could be used in future for scrolling
+    double valuesOffset = 0;
     double verticalRatio;
 
     {
@@ -361,7 +354,7 @@ class _LineChartPainter extends CustomPainter {
             yield LabelEntry(
                 value,
                 value
-                    .toString()); // @TODO , choose better precision based on optimal step value while parsing to string
+                    .toString());
             value += optimalStepValue;
           }
         }
@@ -438,9 +431,6 @@ class _LineChartPainter extends CustomPainter {
       // If no labels provided - generate them!
       if (argumentsLabels == null) {
         throw "not implemented";
-        // @TODO . after few hot days of thinking about the problem for 1-2 hour a day, I just gave up.
-        // The hardest in the problem is that there must be trade-off between space for labels and max lines,
-        // but keep in mind that the label values should be in some human-readable steps (0.5, 10, 0.02...).
       }
       // If labels provided - use them
       else {
@@ -570,7 +560,6 @@ class _LineChartPainter extends CustomPainter {
         interval *= 10;
       }
     } else {
-      // @TODO ! not working at all for lower :C
       int zeros = 0;
       while (interval < 0) {
         interval = interval * 10;

@@ -42,16 +42,15 @@ class _Message {
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+  MyHomePage({Key key, this.title, this.server}) : super(key: key);
 
   // The home page of your application.
   // This class is the configuration for the state. It holds the values (in this
   // case the title) provided by the parent (in this case the App widget) and
   // used by the build method of the State. Fields in a Widget subclass are
   // always marked "final".
-
+  final BluetoothDevice server;
   final String title;
-  BluetoothDevice server;
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
@@ -71,6 +70,21 @@ class _MyHomePageState extends State<MyHomePage> {
   BackgroundCollectingTask _collectingTask;
 
   bool _autoAcceptPairingRequests = false;
+
+  static final clientID = 0;
+  BluetoothConnection connection;
+
+  List<_Message> messages = List<_Message>();
+  String _messageBuffer = '';
+
+  final TextEditingController textEditingController =
+  new TextEditingController();
+  final ScrollController listScrollController = new ScrollController();
+
+  bool isConnecting = true;
+  bool get isConnected => connection != null && connection.isConnected;
+
+  bool isDisconnecting = false;
 
   @override
   void initState() {
@@ -117,6 +131,34 @@ class _MyHomePageState extends State<MyHomePage> {
         _discoverableTimeoutSecondsLeft = 0;
       });
     });
+    BluetoothConnection.toAddress(widget.server.address).then((_connection) {
+      print('Connected to the device');
+      connection = _connection;
+      setState(() {
+        isConnecting = false;
+        isDisconnecting = false;
+      });
+
+      connection.input.listen(_onDataReceived).onDone(() {
+        // Example: Detect which side closed the connection
+        // There should be `isDisconnecting` flag to show are we are (locally)
+        // in middle of disconnecting process, should be set before calling
+        // `dispose`, `finish` or `close`, which all causes to disconnect.
+        // If we except the disconnection, `onDone` should be fired as result.
+        // If we didn't except this (no flag set), it means closing by remote.
+        if (isDisconnecting) {
+          print('Disconnecting locally!');
+        } else {
+          print('Disconnected remotely!');
+        }
+        if (this.mounted) {
+          setState(() {});
+        }
+      });
+    }).catchError((error) {
+      print('Cannot connect, exception occured');
+      print(error);
+    });
   }
 
   @override
@@ -124,6 +166,12 @@ class _MyHomePageState extends State<MyHomePage> {
     FlutterBluetoothSerial.instance.setPairingRequestHandler(null);
     _collectingTask?.dispose();
     _discoverableTimeoutTimer?.cancel();
+    // Avoid memory leak (`setState` after dispose) and disconnect
+    if (isConnected) {
+      isDisconnecting = true;
+      connection.dispose();
+      connection = null;
+    }
     super.dispose();
   }
 
@@ -168,33 +216,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  //SendMessage
-  static final clientID = 0;
-  BluetoothConnection connection;
-
-  List<_Message> messages = List<_Message>();
-  String _messageBuffer = '';
-
-  //final TextEditingController textEditingController =
-  //new TextEditingController();
-  final ScrollController listScrollController = new ScrollController();
-
-  bool isConnecting = true;
-  bool get isConnected => connection != null && connection.isConnected;
-
-  bool isDisconnecting = false;
-
-  /*@override
-  void dispose() {
-    // Avoid memory leak (`setState` after dispose) and disconnect
-    if (isConnected) {
-      isDisconnecting = true;
-      connection.dispose();
-      connection = null;
-    }
-
-    super.dispose();
-  }*/
+  //Recevoir et transmettre des données
 
   void _onDataReceived(Uint8List data) {
     // Allocate buffer for parsed data

@@ -138,7 +138,6 @@ class PaintStyle {
   /// [Canvas.drawImageRect] or [Canvas.drawImageNine].
   ///
   /// Defaults to [FilterQuality.none].
-  // TODO(ianh): verify that the image drawing methods actually respect this
   final FilterQuality filterQuality;
 
   /// The shader to use when stroking or filling a shape.

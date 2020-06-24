@@ -15,7 +15,7 @@ class BackgroundCollectedPage extends StatelessWidget {
         task.samples.first.timestamp.millisecondsSinceEpoch;
 
     final Duration showDuration =
-    Duration(hours: 2); // @TODO . show duration should be configurable
+    Duration(hours: 2);
     final Iterable<DataSample> lastSamples = task.getLastOf(showDuration);
 
     final Iterable<double> arguments = lastSamples.map((sample) {
@@ -25,7 +25,7 @@ class BackgroundCollectedPage extends StatelessWidget {
 
     // Step for argument labels
     final Duration argumentsStep =
-    Duration(minutes: 15); // @TODO . step duration should be configurable
+    Duration(minutes: 15);
 
     // Find first timestamp floored to step before
     final DateTime beginningArguments = lastSamples.first.timestamp;
