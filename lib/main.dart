@@ -5,12 +5,14 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:scoped_model/scoped_model.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import './DiscoveryPage.dart';
-import './ChatPage.dart';
+//import './ChatPage.dart';
 import './SelectBoundedDevicePage.dart';
 import './BackgroundCollectingTask.dart';
-import './BackgroundCollectPage.dart';
+//import './BackgroundCollectPage.dart';
 
 void main() {
   runApp(MyApp());
@@ -32,6 +34,13 @@ class MyApp extends StatelessWidget {
   }
 }
 
+class _Message {
+  int whom;
+  String text;
+
+  _Message(this.whom, this.text);
+}
+
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
 
@@ -42,6 +51,7 @@ class MyHomePage extends StatefulWidget {
   // always marked "final".
 
   final String title;
+  BluetoothDevice server;
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
@@ -49,7 +59,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
-  //Main page
+  //Connexion Bluetooth
   BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
 
   String _address = "...";
@@ -117,7 +127,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
-  void _startChat(BuildContext context, BluetoothDevice server) {
+  /*void _startChat(BuildContext context, BluetoothDevice server) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) {
@@ -125,13 +135,7 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ),
     );
-  }
-
-  void sendMessage(String text){
-
-
-
-  }
+  }*/
 
   Future<void> _startBackgroundTask(
       BuildContext context,
@@ -164,6 +168,109 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  //SendMessage
+  static final clientID = 0;
+  BluetoothConnection connection;
+
+  List<_Message> messages = List<_Message>();
+  String _messageBuffer = '';
+
+  //final TextEditingController textEditingController =
+  //new TextEditingController();
+  final ScrollController listScrollController = new ScrollController();
+
+  bool isConnecting = true;
+  bool get isConnected => connection != null && connection.isConnected;
+
+  bool isDisconnecting = false;
+
+  /*@override
+  void dispose() {
+    // Avoid memory leak (`setState` after dispose) and disconnect
+    if (isConnected) {
+      isDisconnecting = true;
+      connection.dispose();
+      connection = null;
+    }
+
+    super.dispose();
+  }*/
+
+  void _onDataReceived(Uint8List data) {
+    // Allocate buffer for parsed data
+    int backspacesCounter = 0;
+    data.forEach((byte) {
+      if (byte == 8 || byte == 127) {
+        backspacesCounter++;
+      }
+    });
+    Uint8List buffer = Uint8List(data.length - backspacesCounter);
+    int bufferIndex = buffer.length;
+
+    // Apply backspace control character
+    backspacesCounter = 0;
+    for (int i = data.length - 1; i >= 0; i--) {
+      if (data[i] == 8 || data[i] == 127) {
+        backspacesCounter++;
+      } else {
+        if (backspacesCounter > 0) {
+          backspacesCounter--;
+        } else {
+          buffer[--bufferIndex] = data[i];
+        }
+      }
+    }
+
+    // Create message if there is new line character
+    String dataString = String.fromCharCodes(buffer);
+    int index = buffer.indexOf(13);
+    if (~index != 0) {
+      setState(() {
+        messages.add(
+          _Message(
+            1,
+            backspacesCounter > 0
+                ? _messageBuffer.substring(
+                0, _messageBuffer.length - backspacesCounter)
+                : _messageBuffer + dataString.substring(0, index),
+          ),
+        );
+        _messageBuffer = dataString.substring(index);
+      });
+    } else {
+      _messageBuffer = (backspacesCounter > 0
+          ? _messageBuffer.substring(
+          0, _messageBuffer.length - backspacesCounter)
+          : _messageBuffer + dataString);
+    }
+  }
+
+  Future<void> _sendMessage(String text) async {
+    text = text.trim();
+    //textEditingController.clear();
+
+    if (text.length > 0) {
+      try {
+        connection.output.add(utf8.encode(text + "\r\n"));
+        await connection.output.allSent;
+
+        setState(() {
+          messages.add(_Message(clientID, text));
+        });
+
+        Future.delayed(Duration(milliseconds: 333)).then((_) {
+          listScrollController.animateTo(
+              listScrollController.position.maxScrollExtent,
+              duration: Duration(milliseconds: 333),
+              curve: Curves.easeOut);
+        });
+      } catch (e) {
+        // Ignore error, but notify state
+        setState(() {});
+      }
+    }
+  }
+
   //BackgroundCollect
   showAlertDialog(BuildContext context) {
     // set up the AlertDialog
@@ -188,6 +295,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  //Localisation
   final Geolocator geolocator = Geolocator()
     ..forceAndroidLocationManager;
 
@@ -452,7 +560,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
                               FloatingActionButton(
-                                onPressed: null,
+                                onPressed: () => _sendMessage("SL"),
                                 child: Center(child: Icon(Icons.arrow_back)),
                                 backgroundColor: Colors.red,
                                 focusColor: Colors.black26,
@@ -466,7 +574,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Padding(
                                 padding: const EdgeInsets.all(10.0),
                                 child: FloatingActionButton(
-                                  onPressed: null,
+                                  onPressed: () => _sendMessage("SU"),
                                   child: Center(
                                       child: Icon(Icons.arrow_upward)),
                                   backgroundColor: Colors.blueGrey,
@@ -477,7 +585,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Padding(
                                 padding: const EdgeInsets.all(10.0),
                                 child: FloatingActionButton(
-                                  onPressed: null,
+                                  onPressed: () => _sendMessage("SD"),
                                   child: Center(
                                       child: Icon(Icons.arrow_downward)),
                                   backgroundColor: Colors.blueGrey,
@@ -490,7 +598,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           Column(
                             children: <Widget>[
                               FloatingActionButton(
-                                onPressed: null,
+                                onPressed: () => _sendMessage("SR"),
                                 child: Center(child: Icon(Icons.arrow_forward)),
                                 backgroundColor: Colors.red,
                                 focusColor: Colors.black26,
@@ -519,7 +627,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
                               FloatingActionButton(
-                                onPressed: null,
+                                onPressed: () => _sendMessage("ML"),
                                 child: Center(child: Icon(Icons.arrow_back)),
                                 backgroundColor: Colors.blueGrey,
                                 focusColor: Colors.black26,
@@ -534,7 +642,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Padding(
                                 padding: const EdgeInsets.all(20.0),
                                 child: FloatingActionButton(
-                                  onPressed: null,
+                                  onPressed: () => _sendMessage("MU"),
                                   child: Center(
                                       child: Icon(Icons.arrow_upward)),
                                   backgroundColor: Colors.red,
@@ -545,10 +653,10 @@ class _MyHomePageState extends State<MyHomePage> {
                               Padding(
                                 padding: const EdgeInsets.all(10.0),
                                 child: FloatingActionButton(
-                                  onPressed: null,
+                                  onPressed: () => _sendMessage("MD"),
                                   child: Center(
                                       child: Icon(Icons.arrow_downward)),
-                                  backgroundColor: Colors.red,
+                                  backgroundColor: Colors.grey,
                                   focusColor: Colors.black26,
 
                                 ),
@@ -558,7 +666,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           Column(
                             children: <Widget>[
                               FloatingActionButton(
-                                onPressed: null,
+                                onPressed: () => _sendMessage("MR"),
                                 child: Center(child: Icon(Icons.arrow_forward)),
                                 backgroundColor: Colors.blueGrey,
                                 focusColor: Colors.black26,
@@ -573,13 +681,22 @@ class _MyHomePageState extends State<MyHomePage> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: <Widget>[
                         FloatingActionButton(
-                          onPressed: null,
+                          onPressed: () => _sendMessage("W"),
                           child: Center(child: Text("EAU")),
                         ),
                         FloatingActionButton(
-                          onPressed: null,
+                          onPressed: () => _sendMessage("H"),
                           backgroundColor: Colors.red,
                           child: Center(child: Icon(Icons.volume_up),),
+                        ),
+                        FloatingActionButton(
+                          onPressed: () => _sendMessage("ST"),
+                          child: Center(child: Text("START")),
+                        ),
+                        FloatingActionButton(
+                          onPressed: () => _sendMessage("SP"),
+                          backgroundColor: Colors.red,
+                          child: Center(child: Text("STOP")),
                         )
                       ],
                     ),
