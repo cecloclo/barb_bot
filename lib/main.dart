@@ -3,14 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
-import 'package:scoped_model/scoped_model.dart';
+//import 'package:scoped_model/scoped_model.dart';
 import 'dart:async';
+import 'dart:typed_data';
 
 import './DiscoveryPage.dart';
+import './ReceivePage.dart';
 import './ChatPage.dart';
 import './SelectBoundedDevicePage.dart';
 import './BackgroundCollectingTask.dart';
-import './BackgroundCollectPage.dart';
+//import './BackgroundCollectPage.dart';
 
 void main() {
   runApp(MyApp());
@@ -60,7 +62,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   BackgroundCollectingTask _collectingTask;
 
-  bool _autoAcceptPairingRequests = false;
+  //bool _autoAcceptPairingRequests = false;
   BluetoothDevice server;
 
   @override
@@ -123,6 +125,16 @@ class _MyHomePageState extends State<MyHomePage> {
       MaterialPageRoute(
         builder: (context) {
           return ChatPage(server: server);
+        },
+      ),
+    );
+  }
+
+  void _startInfo(BuildContext context, BluetoothDevice server, Uint8List data) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) {
+          return ReceivePage(server: server);
         },
       ),
     );
@@ -330,102 +342,107 @@ class _MyHomePageState extends State<MyHomePage> {
                   ],
                 ),
               ),
-              Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: <Widget>[
-                    Row(children: [
-                      Card(
-                        //color: Colors.red,
-                        child: Container(
-                          width: 170,
-                          height: 200,
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: <Widget>[
-                                Container(
-                                    padding: new EdgeInsets.all(15.0),
-                                    height: 110.0,
-                                    child: Image.asset('assets/Image/safe.png')
-                                ),
-                                Text("Alerte Feu",
-                                    style: TextStyle(
-                                      fontSize: 24.0,
-                                    )),
-                              ]),
-                        ),
-                      ),
-                      Card(
-                        //color: Colors.red,
-                        child: Container(
-                          width: 170,
-                          height: 200,
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: <Widget>[
-                                Container(
-                                    padding: new EdgeInsets.all(15.0),
-                                    height: 110.0,
-                                    child: Image.asset('assets/Image/eau.png')
-                                ),
-                                Text("Réservoir",
-                                    style: TextStyle(
-                                      fontSize: 24.0,
-                                    )),
-                              ]),
-                        ),
-                      ),
-                    ]),
-                    Row(children: [
-                      Card(
-                        //color: Colors.red,
-                        child: Container(
-                          width: 170,
-                          height: 200,
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: <Widget>[
-                                Container(
-                                    padding: new EdgeInsets.all(15.0),
-                                    height: 110.0,
-                                    child: Image.asset('assets/Image/temp.png')
-                                ),
-                                Text("Température",
-                                    style: TextStyle(
-                                      fontSize: 24.0,
-                                    )),
-                              ]),
-                        ),
-                      ),
-                      Card(
-                        //color: Colors.red,
-                        child: Container(
-                          width: 170,
-                          height: 200,
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: <Widget>[
-                                Text("Localisation",
-                                    style: TextStyle(
-                                      fontSize: 24.0,)),
-                                if (_currentPosition != null) Text(
-                                    _currentAddress),
-                                FlatButton(
-                                  child: Container(
+              Center(
+                child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                        Card(
+                          //color: Colors.red,
+                          child: Container(
+                            width: 170,
+                            height: 200,
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: <Widget>[
+                                  Container(
                                       padding: new EdgeInsets.all(15.0),
                                       height: 110.0,
-                                      child: Image.asset('assets/Image/gps.png')
+                                      child: Image.asset('assets/Image/safe.png')
                                   ),
-                                  onPressed: () {
-                                    _getCurrentLocation();
-                                  },
-                                ),
-
-                              ]),
+                                  Text("Alerte Feu",
+                                      style: TextStyle(
+                                        fontSize: 24.0,
+                                      )),
+                                ]),
+                          ),
                         ),
-                      ),
+                        Card(
+                          //color: Colors.red,
+                          child: Container(
+                            width: 170,
+                            height: 200,
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: <Widget>[
+                                  Container(
+                                      padding: new EdgeInsets.all(15.0),
+                                      height: 110.0,
+                                      child: Image.asset('assets/Image/eau.png')
+                                  ),
+                                  Text("Réservoir",
+                                      style: TextStyle(
+                                        fontSize: 24.0,
+                                      )),
+                                ]),
+                          ),
+                        ),
+                      ]),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                        Card(
+                          //color: Colors.red,
+                          child: Container(
+                            width: 170,
+                            height: 200,
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: <Widget>[
+                                  Container(
+                                      padding: new EdgeInsets.all(15.0),
+                                      height: 110.0,
+                                      child: Image.asset('assets/Image/temp.png')
+                                  ),
+                                  Text("Température",
+                                      style: TextStyle(
+                                        fontSize: 24.0,
+                                      )),
+                                ]),
+                          ),
+                        ),
+                        Card(
+                          //color: Colors.red,
+                          child: Container(
+                            width: 170,
+                            height: 200,
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: <Widget>[
+                                  FlatButton(
+                                    child: Container(
+                                        padding: new EdgeInsets.all(15.0),
+                                        height: 110.0,
+                                        child: Image.asset('assets/Image/gps.png')
+                                    ),
+                                    onPressed: () {
+                                      _getCurrentLocation();
+                                    },
+                                  ),
+                                  Text("Localisation",
+                                      style: TextStyle(
+                                        fontSize: 24.0,)),
+                                  if (_currentPosition != null) Text(
+                                      _currentAddress),
+                                ]),
+                          ),
+                        ),
+                      ]),
                     ]),
-                  ]),
+              ),
               Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: <Widget>[
@@ -447,6 +464,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
                               FloatingActionButton(
+                                heroTag: "btn1",
                                 onPressed: () =>  _startChat(context, this.server, "SL"),
                                 child: Center(child: Icon(Icons.arrow_back)),
                                 backgroundColor: Colors.red,
@@ -461,6 +479,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Padding(
                                 padding: const EdgeInsets.all(10.0),
                                 child: FloatingActionButton(
+                                  heroTag: "btn2",
                                   onPressed: () =>  _startChat(context, this.server, "SU"),
                                   child: Center(
                                       child: Icon(Icons.arrow_upward)),
@@ -472,6 +491,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Padding(
                                 padding: const EdgeInsets.all(10.0),
                                 child: FloatingActionButton(
+                                  heroTag: "btn3",
                                   onPressed: () =>  _startChat(context, this.server, "SD"),
                                   child: Center(
                                       child: Icon(Icons.arrow_downward)),
@@ -485,6 +505,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           Column(
                             children: <Widget>[
                               FloatingActionButton(
+                                heroTag: "btn4",
                                 onPressed: () =>  _startChat(context, this.server, "SR"),
                                 child: Center(child: Icon(Icons.arrow_forward)),
                                 backgroundColor: Colors.red,
@@ -514,6 +535,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
                               FloatingActionButton(
+                                heroTag: "btn5",
                                 onPressed: () =>  _startChat(context, this.server, "ML"),
                                 child: Center(child: Icon(Icons.arrow_back)),
                                 backgroundColor: Colors.blueGrey,
@@ -529,6 +551,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Padding(
                                 padding: const EdgeInsets.all(20.0),
                                 child: FloatingActionButton(
+                                  heroTag: "btn6",
                                   onPressed: () =>  _startChat(context, this.server, "MU"),
                                   child: Center(
                                       child: Icon(Icons.arrow_upward)),
@@ -540,6 +563,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Padding(
                                 padding: const EdgeInsets.all(10.0),
                                 child: FloatingActionButton(
+                                  heroTag: "btn7",
                                   onPressed: () =>  _startChat(context, this.server, "MD"),
                                   child: Center(
                                       child: Icon(Icons.arrow_downward)),
@@ -553,6 +577,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           Column(
                             children: <Widget>[
                               FloatingActionButton(
+                                heroTag: "btn8",
                                 onPressed: () =>  _startChat(context, this.server, "MR"),
                                 child: Center(child: Icon(Icons.arrow_forward)),
                                 backgroundColor: Colors.blueGrey,
@@ -568,19 +593,23 @@ class _MyHomePageState extends State<MyHomePage> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: <Widget>[
                         FloatingActionButton(
+                          heroTag: "btn9",
                           onPressed: () =>  _startChat(context, this.server, "W"),
                           child: Center(child: Text("EAU")),
                         ),
                         FloatingActionButton(
+                          heroTag: "btn10",
                           onPressed: () =>  _startChat(context, this.server, "H"),
                           backgroundColor: Colors.red,
                           child: Center(child: Icon(Icons.volume_up),),
                         ),
                         FloatingActionButton(
+                          heroTag: "btn11",
                           onPressed: () =>  _startChat(context, this.server, "ST"),
                           child: Center(child: Text("Start")),
                         ),
                         FloatingActionButton(
+                          heroTag: "btn12",
                           onPressed: () =>  _startChat(context, this.server, "SP"),
                           backgroundColor: Colors.red,
                           child: Center(child: Text("Stop")),
