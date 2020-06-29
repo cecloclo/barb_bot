@@ -7,8 +7,9 @@ import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
 class ChatPage extends StatefulWidget {
   final BluetoothDevice server;
+  final String text;
 
-  const ChatPage({this.server});
+  const ChatPage({this.server, this.text});
 
   @override
   _ChatPage createState() => new _ChatPage();
@@ -69,6 +70,8 @@ class _ChatPage extends State<ChatPage> {
       print('Cannot connect, exception occured');
       print(error);
     });
+
+    _sendMessage(widget.text);
   }
 
   @override
@@ -85,7 +88,8 @@ class _ChatPage extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Row> list = messages.map((_message) {
+    return Row();
+    /*final List<Row> list = messages.map((_message) {
       return Row(
         children: <Widget>[
           Container(
@@ -158,7 +162,7 @@ class _ChatPage extends State<ChatPage> {
           ],
         ),
       ),
-    );
+    );*/
   }
 
   void _onDataReceived(Uint8List data) {
@@ -213,6 +217,8 @@ class _ChatPage extends State<ChatPage> {
   void _sendMessage(String text) async {
     text = text.trim();
     //textEditingController.clear();
+    debugPrint("\nSending text : "+text+"\n");
+
 
     if (text.length > 0) {
       try {

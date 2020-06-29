@@ -5,14 +5,12 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:scoped_model/scoped_model.dart';
 import 'dart:async';
-import 'dart:convert';
-import 'dart:typed_data';
 
 import './DiscoveryPage.dart';
-//import './ChatPage.dart';
+import './ChatPage.dart';
 import './SelectBoundedDevicePage.dart';
 import './BackgroundCollectingTask.dart';
-//import './BackgroundCollectPage.dart';
+import './BackgroundCollectPage.dart';
 
 void main() {
   runApp(MyApp());
@@ -34,22 +32,15 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class _Message {
-  int whom;
-  String text;
-
-  _Message(this.whom, this.text);
-}
-
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title, this.server}) : super(key: key);
+  MyHomePage({Key key, this.title}) : super(key: key);
 
   // The home page of your application.
   // This class is the configuration for the state. It holds the values (in this
   // case the title) provided by the parent (in this case the App widget) and
   // used by the build method of the State. Fields in a Widget subclass are
   // always marked "final".
-  final BluetoothDevice server;
+
   final String title;
 
   @override
@@ -58,7 +49,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
-  //Connexion Bluetooth
+  //Main page
   BluetoothState _bluetoothState = BluetoothState.UNKNOWN;
 
   String _address = "...";
@@ -70,21 +61,7 @@ class _MyHomePageState extends State<MyHomePage> {
   BackgroundCollectingTask _collectingTask;
 
   bool _autoAcceptPairingRequests = false;
-
-  static final clientID = 0;
-  BluetoothConnection connection;
-
-  List<_Message> messages = List<_Message>();
-  String _messageBuffer = '';
-
-  final TextEditingController textEditingController =
-  new TextEditingController();
-  final ScrollController listScrollController = new ScrollController();
-
-  bool isConnecting = true;
-  bool get isConnected => connection != null && connection.isConnected;
-
-  bool isDisconnecting = false;
+  BluetoothDevice server;
 
   @override
   void initState() {
@@ -131,34 +108,6 @@ class _MyHomePageState extends State<MyHomePage> {
         _discoverableTimeoutSecondsLeft = 0;
       });
     });
-    BluetoothConnection.toAddress(widget.server.address).then((_connection) {
-      print('Connected to the device');
-      connection = _connection;
-      setState(() {
-        isConnecting = false;
-        isDisconnecting = false;
-      });
-
-      connection.input.listen(_onDataReceived).onDone(() {
-        // Example: Detect which side closed the connection
-        // There should be `isDisconnecting` flag to show are we are (locally)
-        // in middle of disconnecting process, should be set before calling
-        // `dispose`, `finish` or `close`, which all causes to disconnect.
-        // If we except the disconnection, `onDone` should be fired as result.
-        // If we didn't except this (no flag set), it means closing by remote.
-        if (isDisconnecting) {
-          print('Disconnecting locally!');
-        } else {
-          print('Disconnected remotely!');
-        }
-        if (this.mounted) {
-          setState(() {});
-        }
-      });
-    }).catchError((error) {
-      print('Cannot connect, exception occured');
-      print(error);
-    });
   }
 
   @override
@@ -166,16 +115,10 @@ class _MyHomePageState extends State<MyHomePage> {
     FlutterBluetoothSerial.instance.setPairingRequestHandler(null);
     _collectingTask?.dispose();
     _discoverableTimeoutTimer?.cancel();
-    // Avoid memory leak (`setState` after dispose) and disconnect
-    if (isConnected) {
-      isDisconnecting = true;
-      connection.dispose();
-      connection = null;
-    }
     super.dispose();
   }
 
-  /*void _startChat(BuildContext context, BluetoothDevice server) {
+  void _startChat(BuildContext context, BluetoothDevice server, String text) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) {
@@ -183,7 +126,7 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ),
     );
-  }*/
+  }
 
   Future<void> _startBackgroundTask(
       BuildContext context,
@@ -216,83 +159,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  //Recevoir et transmettre des données
-
-  void _onDataReceived(Uint8List data) {
-    // Allocate buffer for parsed data
-    int backspacesCounter = 0;
-    data.forEach((byte) {
-      if (byte == 8 || byte == 127) {
-        backspacesCounter++;
-      }
-    });
-    Uint8List buffer = Uint8List(data.length - backspacesCounter);
-    int bufferIndex = buffer.length;
-
-    // Apply backspace control character
-    backspacesCounter = 0;
-    for (int i = data.length - 1; i >= 0; i--) {
-      if (data[i] == 8 || data[i] == 127) {
-        backspacesCounter++;
-      } else {
-        if (backspacesCounter > 0) {
-          backspacesCounter--;
-        } else {
-          buffer[--bufferIndex] = data[i];
-        }
-      }
-    }
-
-    // Create message if there is new line character
-    String dataString = String.fromCharCodes(buffer);
-    int index = buffer.indexOf(13);
-    if (~index != 0) {
-      setState(() {
-        messages.add(
-          _Message(
-            1,
-            backspacesCounter > 0
-                ? _messageBuffer.substring(
-                0, _messageBuffer.length - backspacesCounter)
-                : _messageBuffer + dataString.substring(0, index),
-          ),
-        );
-        _messageBuffer = dataString.substring(index);
-      });
-    } else {
-      _messageBuffer = (backspacesCounter > 0
-          ? _messageBuffer.substring(
-          0, _messageBuffer.length - backspacesCounter)
-          : _messageBuffer + dataString);
-    }
-  }
-
-  Future<void> _sendMessage(String text) async {
-    text = text.trim();
-    //textEditingController.clear();
-
-    if (text.length > 0) {
-      try {
-        connection.output.add(utf8.encode(text + "\r\n"));
-        await connection.output.allSent;
-
-        setState(() {
-          messages.add(_Message(clientID, text));
-        });
-
-        Future.delayed(Duration(milliseconds: 333)).then((_) {
-          listScrollController.animateTo(
-              listScrollController.position.maxScrollExtent,
-              duration: Duration(milliseconds: 333),
-              curve: Curves.easeOut);
-        });
-      } catch (e) {
-        // Ignore error, but notify state
-        setState(() {});
-      }
-    }
-  }
-
   //BackgroundCollect
   showAlertDialog(BuildContext context) {
     // set up the AlertDialog
@@ -317,7 +183,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  //Localisation
   final Geolocator geolocator = Geolocator()
     ..forceAndroidLocationManager;
 
@@ -454,8 +319,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
                           if (selectedDevice != null) {
                             print('Connect -> selected ' + selectedDevice.address);
+                            this.server = selectedDevice;
                             showAlertDialog(context);
-                            //_startChat(context, selectedDevice);
                           } else {
                             print('Connect -> no device selected');
                           }
@@ -582,7 +447,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
                               FloatingActionButton(
-                                onPressed: () => _sendMessage("SL"),
+                                onPressed: () =>  _startChat(context, this.server, "SL"),
                                 child: Center(child: Icon(Icons.arrow_back)),
                                 backgroundColor: Colors.red,
                                 focusColor: Colors.black26,
@@ -596,7 +461,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Padding(
                                 padding: const EdgeInsets.all(10.0),
                                 child: FloatingActionButton(
-                                  onPressed: () => _sendMessage("SU"),
+                                  onPressed: () =>  _startChat(context, this.server, "SU"),
                                   child: Center(
                                       child: Icon(Icons.arrow_upward)),
                                   backgroundColor: Colors.blueGrey,
@@ -607,7 +472,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Padding(
                                 padding: const EdgeInsets.all(10.0),
                                 child: FloatingActionButton(
-                                  onPressed: () => _sendMessage("SD"),
+                                  onPressed: () =>  _startChat(context, this.server, "SD"),
                                   child: Center(
                                       child: Icon(Icons.arrow_downward)),
                                   backgroundColor: Colors.blueGrey,
@@ -620,7 +485,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           Column(
                             children: <Widget>[
                               FloatingActionButton(
-                                onPressed: () => _sendMessage("SR"),
+                                onPressed: () =>  _startChat(context, this.server, "SR"),
                                 child: Center(child: Icon(Icons.arrow_forward)),
                                 backgroundColor: Colors.red,
                                 focusColor: Colors.black26,
@@ -649,7 +514,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
                               FloatingActionButton(
-                                onPressed: () => _sendMessage("ML"),
+                                onPressed: () =>  _startChat(context, this.server, "ML"),
                                 child: Center(child: Icon(Icons.arrow_back)),
                                 backgroundColor: Colors.blueGrey,
                                 focusColor: Colors.black26,
@@ -664,7 +529,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Padding(
                                 padding: const EdgeInsets.all(20.0),
                                 child: FloatingActionButton(
-                                  onPressed: () => _sendMessage("MU"),
+                                  onPressed: () =>  _startChat(context, this.server, "MU"),
                                   child: Center(
                                       child: Icon(Icons.arrow_upward)),
                                   backgroundColor: Colors.red,
@@ -675,10 +540,10 @@ class _MyHomePageState extends State<MyHomePage> {
                               Padding(
                                 padding: const EdgeInsets.all(10.0),
                                 child: FloatingActionButton(
-                                  onPressed: () => _sendMessage("MD"),
+                                  onPressed: () =>  _startChat(context, this.server, "MD"),
                                   child: Center(
                                       child: Icon(Icons.arrow_downward)),
-                                  backgroundColor: Colors.grey,
+                                  backgroundColor: Colors.red,
                                   focusColor: Colors.black26,
 
                                 ),
@@ -688,7 +553,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           Column(
                             children: <Widget>[
                               FloatingActionButton(
-                                onPressed: () => _sendMessage("MR"),
+                                onPressed: () =>  _startChat(context, this.server, "MR"),
                                 child: Center(child: Icon(Icons.arrow_forward)),
                                 backgroundColor: Colors.blueGrey,
                                 focusColor: Colors.black26,
@@ -703,22 +568,22 @@ class _MyHomePageState extends State<MyHomePage> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: <Widget>[
                         FloatingActionButton(
-                          onPressed: () => _sendMessage("W"),
+                          onPressed: () =>  _startChat(context, this.server, "W"),
                           child: Center(child: Text("EAU")),
                         ),
                         FloatingActionButton(
-                          onPressed: () => _sendMessage("H"),
+                          onPressed: () =>  _startChat(context, this.server, "H"),
                           backgroundColor: Colors.red,
                           child: Center(child: Icon(Icons.volume_up),),
                         ),
                         FloatingActionButton(
-                          onPressed: () => _sendMessage("ST"),
-                          child: Center(child: Text("START")),
+                          onPressed: () =>  _startChat(context, this.server, "ST"),
+                          child: Center(child: Text("Start")),
                         ),
                         FloatingActionButton(
-                          onPressed: () => _sendMessage("SP"),
+                          onPressed: () =>  _startChat(context, this.server, "SP"),
                           backgroundColor: Colors.red,
-                          child: Center(child: Text("STOP")),
+                          child: Center(child: Text("Stop")),
                         )
                       ],
                     ),
