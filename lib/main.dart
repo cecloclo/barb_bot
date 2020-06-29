@@ -332,6 +332,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           if (selectedDevice != null) {
                             print('Connect -> selected ' + selectedDevice.address);
                             this.server = selectedDevice;
+                            _startChat(context, selectedDevice, "");
                             showAlertDialog(context);
                           } else {
                             print('Connect -> no device selected');

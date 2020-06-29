@@ -71,7 +71,7 @@ class _ChatPage extends State<ChatPage> {
       print(error);
     });
 
-    _sendMessage(widget.text);
+    //_sendMessage(widget.text);
   }
 
   @override
@@ -88,7 +88,8 @@ class _ChatPage extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Row();
+    _sendMessage(widget.text);
+    Navigator.of(context).pop;
     /*final List<Row> list = messages.map((_message) {
       return Row(
         children: <Widget>[
